@@ -1,0 +1,152 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model online2024_agencies {
+  id_agency              Int                      @id @default(autoincrement())
+  name                   String                   @unique
+  name_ar                String
+  created_by             String
+  created_date           DateTime                 @default(now()) @db.Timestamp(3)
+  modified_date          DateTime?                @db.Timestamp(3)
+  modified_by            String?
+  change_state_by        String?
+  change_state_date      DateTime?                @db.Timestamp(3)
+  state                  Boolean                  @default(false)
+  url                    String?
+  alias                  String?
+  online2024_articles    online2024_articles[]
+  online2024_user_agency online2024_user_agency[]
+
+  @@index([state], map: "idx_state")
+}
+
+model online2024_articles {
+  id_article          BigInt              @id @default(autoincrement())
+  id_agency           Int
+  label               String              @db.VarChar(50)
+  title               String              @db.Text
+  slug                String              @db.Text
+  full_text           String              @db.LongText
+  file_name           String
+  created_date        DateTime            @db.Timestamp(3)
+  online2024_agencies online2024_agencies @relation(fields: [id_agency], references: [id_agency], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([id_agency], map: "online2024_articles_id_agency_fkey")
+  @@index([id_agency, created_date], map: "idx_agency_date")
+  @@index([created_date], map: "idx_created_date")
+}
+
+model online2024_sessions {
+  id_session       BigInt           @id @default(autoincrement())
+  id_user          Int
+  adresse_ip       String           @db.VarChar(100)
+  is_active        Boolean
+  login_date       DateTime         @default(now()) @db.Timestamp(3)
+  logout_date      DateTime?        @db.Timestamp(3)
+  online2024_users online2024_users @relation(fields: [id_user], references: [id_user], onDelete: Cascade, onUpdate: NoAction, map: "online2024_sessions_id_user_foreign")
+
+  @@unique([id_session, id_user, is_active])
+  @@index([id_user], map: "online2024_sessions_id_user_foreign")
+}
+
+model online2024_user_agency {
+  id_user             Int
+  id_agency           Int
+  assigned_date       DateTime            @default(now()) @db.Timestamp(3)
+  assigned_by         String
+  online2024_agencies online2024_agencies @relation(fields: [id_agency], references: [id_agency], onDelete: Cascade)
+  online2024_users    online2024_users    @relation(fields: [id_user], references: [id_user], onDelete: Cascade)
+
+  @@id([id_user, id_agency])
+  @@index([id_agency], map: "online2024_user_agency_id_agency_fkey")
+  @@index([id_user, id_agency], map: "idx_user_agency_user")
+}
+
+model online2024_users {
+  id_user                Int                      @id @default(autoincrement())
+  designation            String
+  username               String                   @unique @db.VarChar(30)
+  phone_number           String?
+  email                  String?                  @db.VarChar(30)
+  password               String                   @db.VarChar(60)
+  state                  Int                      @default(1) @db.SmallInt
+  login_attempts         Int                      @default(0)
+  register_by            String
+  register_date          DateTime                 @default(now()) @db.Timestamp(3)
+  blocked_date           DateTime?                @db.Timestamp(3)
+  unblocked_by           String?
+  unblocked_date         DateTime?                @db.Timestamp(3)
+  deactivated_by         String?
+  desactivate_date       DateTime?                @db.Timestamp(3)
+  activate_by            String?
+  activate_date          DateTime?                @db.Timestamp(3)
+  modified_by            String?
+  modified_date          DateTime?                @db.Timestamp(3)
+  lastvisit_date         DateTime?                @db.Timestamp(3)
+  block_code             Int?
+  lang                   Int                      @default(2) @db.SmallInt
+  refresh_time           Int                      @default(5)
+  id_role                Int
+  id_service             Int
+  trash_by               String?
+  trash_date             DateTime?                @db.Timestamp(3)
+  note                   String?                  @db.Text
+  contact                String?                  @db.VarChar(50)
+  fonction               String?                  @db.VarChar(50)
+  contact_numbers        String?                  @db.VarChar(50)
+  contact_emails         String?                  @db.Text
+  online2024_sessions    online2024_sessions[]
+  online2024_user_agency online2024_user_agency[]
+  online2024_roles       online2024_roles         @relation(fields: [id_role], references: [id_role], onDelete: NoAction)
+  online2024_service     online2024_service       @relation(fields: [id_service], references: [id_service], onDelete: NoAction)
+
+  @@index([id_role], map: "online2024_users_id_role_fkey")
+  @@index([id_service], map: "online2024_users_id_service_fkey")
+}
+
+model processedfiles {
+  id           BigInt   @id @default(autoincrement())
+  file_name    String   @unique @db.VarChar(100)
+  created_date DateTime @default(now()) @db.Timestamp(3)
+  id_agency    Int
+}
+
+model online2024_roles {
+  id_role               Int                     @id @default(autoincrement())
+  name                  String                  @unique
+  online2024_roles_menu online2024_roles_menu[]
+  online2024_service    online2024_service[]
+  online2024_users      online2024_users[]
+}
+
+model online2024_menu {
+  id_menu               Int                     @id @default(autoincrement())
+  name                  String                  @unique
+  online2024_roles_menu online2024_roles_menu[]
+}
+
+model online2024_roles_menu {
+  id_role          Int
+  id_menu          Int
+  online2024_menu  online2024_menu  @relation(fields: [id_menu], references: [id_menu], onDelete: Cascade)
+  online2024_roles online2024_roles @relation(fields: [id_role], references: [id_role], onDelete: Cascade)
+
+  @@id([id_menu, id_role])
+  @@index([id_role], map: "online2024_roles_menu_id_role_fkey")
+}
+
+model online2024_service {
+  id_service       Int                @id @default(autoincrement())
+  name             String
+  id_role          Int                @default(1)
+  online2024_roles online2024_roles   @relation(fields: [id_role], references: [id_role], onDelete: Cascade)
+  online2024_users online2024_users[]
+
+  @@unique([id_role, name])
+}

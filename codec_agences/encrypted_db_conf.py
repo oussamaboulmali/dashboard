@@ -1,0 +1,66 @@
+# Encrypted database and FTP configuration
+
+SALT = b"r\x1e\x9cqv\x10?\x08U\xec\xdaL\x0c\xd9'\x96"
+
+ENCRYPTED_DB_CONFIG = {
+    "host": "gAAAAABo26I7TW1QespGvobGZGXeE2K_1TXy_ujm5CywNhHIa-_xveekL9LEPuMXVAKj_U_c9l-Lv-qHNrDl3fbshhGo8AUx3Q==",
+    "user": "gAAAAABo26I7KMCdRjwxNcV5b3DlWJ-G4S_R4SAeHZ5JKHI1rLUJjiFwnlqTnAGmZTvQgCBocDoOtJ0ZOZh7AHBOVrCQtuKC1Q==",
+    "password": "gAAAAABo26I7X4aw6F9a3LUkiM1oZZGL8pMgD_oAb0oqnWytAj_gOUugJFqo1XeAEyJLEEthvljr0KEgvTEtAmvB_LDTxhzA9eiRbwLyj69073jfMTtgNgg=",
+    "database": "gAAAAABo26I7am0T65veyyQUKdsiBsRw5Kk4ZwzP4k1ckigdV5JiTNg4fKzv1fIUBdswTtXN1eJwTtgKckLUWyJqcU9Tbp6mVQ==",
+}
+
+ENCRYPTED_FTP_CONFIG_MAP_AR = {
+    "host": "gAAAAABo26I7_tz5L9sgyUS92R12f0H1ysfuElgYAgFDtZ_Qrbr2IntXjYRcz_Asm7M7apMOd0m82KhV9rFHcMiEQIpYY989qw==",
+    "user": "gAAAAABo26I7C6QnqpsxsUlyMy0wHR_wP7gwQQS0Y_EKIQ5HQPfQx_Q1QE7EFvEy7w-owNv_aB3lEz36VWkvPewnC1PH1_GsQQ==",
+    "passwd": "gAAAAABo26I7H8k_6aCi2uJspCJvyjtSaKi521hldO8496t7Hlt4-FN6XhMiYrTiQ4AXxHrC1uPTbNtPIDiKb8nmxcan9I08WQ==",
+}
+
+ENCRYPTED_FTP_CONFIG_MAP_FR = {
+    "host": "gAAAAABo26I7UnPTSzkmKU-vr6r-DPtnILvZlqx7FrtoECJ8qToVO8m5Z-Q0mhDlQ-rNYtTyKl7bBvea9vyjo7OjvQq8lxa8lA==",
+    "user": "gAAAAABo26I7S-sKVbuEWAg5EV2oRcDuZUidRtHX9ikM2uQ54FjjB8qmXIR-BGMaVg4ZIZIczLRvy99SGElrnnjF8Z4NWQsSbQ==",
+    "passwd": "gAAAAABo26I7Kzaq4o_7Sw6d4j9la2De47ymCeGmYY8PawwUl4p2-i7ci7CfMzhPtcsSjUg81T_5WADqJg6f4RHCaK_dSwktSg==",
+}
+
+ENCRYPTED_FTP_CONFIG_PETRA = {
+    "host": "gAAAAABo26I7996VhJRl-UhKpcqhvtWEjVzH-EDdu4hX-QVIGHvxMauik11Ck29IfxG79mL7vhiIyMQtGjT0qDVEueURxFffgZzzFA_UcuqJDFtlkw0Au3g=",
+    "user": "gAAAAABo26I7bN-ueKBgZNLZlIWxB0x-GnvepC4hzHa3-qICxGp8xV3iGH4KELeDJ7vvSvVZZ4FzQ6LyytlX1UIo7VXQxHm7Dw==",
+    "passwd": "gAAAAABo26I7QjYiArrWGuChAseGat5QZbwbnuYS6V5ZwzlFOlzhp8UmYa-yK5ctKLVJrWl4h3HFDSkKLNogI3ZAuRvNKix41g==",
+}
+
+ENCRYPTED_FTP_CONFIG_QNA = {
+    "host": "gAAAAABo26I7ggdcdJXEnemDtX0bRz3u6GIbd2Xa9EH63IMFAEUD2n9X9NWyKklNmFFrVZ9n8SacfPVSZasPckLHl6IBBD5GFio9aaHr4Lwnz4TQ4G70xmg=",
+    "user": "gAAAAABo26I7eTd0qxRtOFyWkY3LqXueUshpmw_wL_f4v1Nyd67aWYP4oWWQhonQ_WvANh_xAXN_sR8u48veFGNChnl1pQ8Xxw==",
+    "passwd": "gAAAAABo26I7Iaf7pPF9yNyvdE-2b42kfaV_0QK-8soqPbfHI8ynsaphqXJLEQIcj1Jzg34DPlZt8up2cOv10FzKqVrY0Rry7A==",
+}
+
+ENCRYPTED_FTP_CONFIG_TAP_AR = {
+    "host": "gAAAAABo26I7yrfycid7EZGKEy2c_vMiUPQjs8IyUmRW8oVWwiCVP2lXCm0iHgzIW0F10D0NWJDMcr_2Fw_Bvj_5KSv-HmphAA==",
+    "user": "gAAAAABo26I7zgGGnDh0PI7EfYxUGTcZhYiPXzE2pFp2fNQ4bD9W0t2FcUzmbd8bkGWL18MDW8j8Nm8gNyY_x1qK6hFCMf2ohg==",
+    "passwd": "gAAAAABo26I7y4nT8c0KmOpqs5SB8a474L7aosOIG5DpGZpICwVYliBhFMelcCr09J8z_yrk7UBDbuDnDLKT3goMzgsB-SZOFg==",
+}
+
+ENCRYPTED_FTP_CONFIG_TAP_FR = {
+    "host": "gAAAAABo26I7SPRoDlIfLJqtERXrXH-9oZ50_55yer8YeHdbaNnZc3rrOBK-yZIjqXW4CTJ5QpUGgJA24KB1O4oPPfu-wdAjmg==",
+    "user": "gAAAAABo26I7CfqY5KmI6DMZaEubsWsVIut7NOcv3ZYktOGlrfyg0IPDLDYCT0NbbJ_5bkeJCLZhWCoMFJ0V-bSVGH9_72FgOA==",
+    "passwd": "gAAAAABo26I7oTTvZHaFcRDwHnfGKsm4bNOCfmmSdA54zPQYzwxz73anfKxWttUBJ8jvC4r8M6Var16cUsqJNqVZ1RH0QDznfQ==",
+}
+
+ENCRYPTED_FTP_CONFIG_VNA = {
+    "host": "gAAAAABo26I7_bGsX_p2ZNRm9i8q0PBXzMqIryEj_zStXgtsXeT3Bbw-DyrRd5gn96-fN8nz2mlw2wi977yIuU1aeiqdY1CdDg==",
+    "user": "gAAAAABo26I7i1WBA36YXFUVdpHkXG1UeYG9xgDcm6escDPbm-kXwFKM5D3lk40zk_ExTAy-5_udFt99DIIF5gmt-l0sv2Q9lg==",
+    "passwd": "gAAAAABo26I7mmiyzuOm3h1L8V5efFIDX6KnakfKgid4cLKaFtCvwgvxu1VQAuR-GuRi7EEUQPJYD-rjRpD3fWt6Loy-6XOHKw==",
+}
+
+ENCRYPTED_FTP_CONFIG_ONA = {
+    "host": "gAAAAABo26I7fgCyHb2NxKhUZ5GmUW8nt-4Z7VAFZ0YdmtgW3irsdGGeL3qyACppTKj8ogFsOkgHhzfqhe-uKLUqVfC9Z12e91ESOTxiDWcEkvpmhP9SYJQ=",
+    "user": "gAAAAABo26I7Rw5rnwBTrrbavMTe7lMvHbh_n4kO6kI7N6kf09nCtHtZbDDHXF5JtWi9ZXmiDoSFtEszu0-J-PnXh7RaLP9ErA==",
+    "passwd": "gAAAAABo26I7c8vqJZ65FF-DLDTtVzVCqSb2I9gQV0Spw-epghlO2l5reM5XMA5Yg6KZjpOUrSQ5TOVnA7iH5GMSDGDSi3OdsA==",
+}
+
+ENCRYPTED_FTP_CONFIG_AZERTAC = {
+    "host": "gAAAAABo26I7wotdfOEmrresK-Y2ti4-umK-EmKTOdqKUdKnTTEgiX3IGhTNYNfvD4n3ObzYn2bLEOQb21D36tJZnXKyDNk4LA==",
+    "user": "gAAAAABo26I7SKjqOZajmcNU4Aw4YbzoRm7ycPYdrRYeLGpj_cz3QzH33X9Tk3CKhyLHagSJLcrr7JPBFbD08xV36A9neljfng==",
+    "passwd": "gAAAAABo26I7Mt846eBdbI5IGrzwZ78LE9KGXZCqEvKnAqW9436M5R3Vr1tsrsFsW5REM0hgQHz9InjQR1PPvOqQVMmmj3B63A==",
+    "port": "gAAAAABo26I7c2Q9xda5nLEFqLrFnw7bbrb7enK5aA-DHNWDWpegSm_4o-_XzFREquOqoyJVrBCg3ynHCUefvS8gZFQsCZFvTA==",
+}
+
