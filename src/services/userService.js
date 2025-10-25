@@ -1,3 +1,10 @@
+/**
+ * @fileoverview User Service
+ * Business logic for user management, authentication, role/service management,
+ * and agency assignments.
+ * @module services/userService
+ */
+
 import prisma from "../configs/database.js";
 import bcrypt from "bcryptjs";
 import { ErrorHandler } from "../middlewares/errorMiddleware.js";
@@ -5,6 +12,13 @@ import { infoLogger } from "../utils/logger.js";
 
 const logger = infoLogger("utilisateurs");
 
+/**
+ * Retrieves all users filtered by service based on requester's role
+ * Users are sorted by state (active first, then blocked, then deactivated)
+ * @param {Object} params - Parameters object
+ * @param {number} params.userId - Requesting user's ID (for role/service filtering)
+ * @returns {Promise<Array>} Array of users with roles, services, and agencies
+ */
 export const getAllUsers = async ({ userId }) => {
   const userRoleAndServices = await prisma.online2024_service.findMany({
     where: {
@@ -85,6 +99,13 @@ export const getAllUsers = async ({ userId }) => {
   return formatedUsers;
 };
 
+/**
+ * Retrieves available roles and services based on user's permissions
+ * Admin users (role 1) see all roles; others only see role 2
+ * @param {Object} params - Parameters object
+ * @param {number} params.userId - User ID
+ * @returns {Promise<Object>} Object with roles and services arrays
+ */
 export const getAllRoles = async ({ userId }) => {
   const userRole = await prisma.online2024_users.findUnique({
     where: {
@@ -129,6 +150,14 @@ export const getAllRoles = async ({ userId }) => {
   }
 };
 
+/**
+ * Retrieves detailed information about a specific user
+ * Excludes password and login_attempts fields
+ * @param {Object} params - Parameters object
+ * @param {number} params.userId - User ID
+ * @returns {Promise<Object>} User details with assigned agencies
+ * @throws {ErrorHandler} 404 - User not found
+ */
 export const getOneUser = async ({ userId }) => {
   const user = await prisma.online2024_users.findUnique({
     where: { id_user: userId },
@@ -163,6 +192,14 @@ export const getOneUser = async ({ userId }) => {
   return user;
 };
 
+/**
+ * Retrieves detailed information about the currently logged-in user
+ * Same as getOneUser but semantically different endpoint
+ * @param {Object} params - Parameters object
+ * @param {number} params.userId - Current user's ID
+ * @returns {Promise<Object>} User details with assigned agencies
+ * @throws {ErrorHandler} 404 - User not found
+ */
 export const getLoggedUserDetails = async ({ userId }) => {
   const user = await prisma.online2024_users.findUnique({
     where: { id_user: userId },
@@ -197,6 +234,13 @@ export const getLoggedUserDetails = async ({ userId }) => {
   return user;
 };
 
+/**
+ * Retrieves all active agencies NOT assigned to a specific user
+ * @param {Object} params - Parameters object
+ * @param {number} params.userId - User ID
+ * @returns {Promise<Array>} Array of available agencies
+ * @throws {ErrorHandler} 401 - User not found
+ */
 export const getOtherAgenciesOfUser = async ({ userId }) => {
   const user = await prisma.online2024_users.findUnique({
     where: {
@@ -224,6 +268,23 @@ export const getOtherAgenciesOfUser = async ({ userId }) => {
   return otherAgencies;
 };
 
+/**
+ * Creates a new user with assigned agencies
+ * Validates username uniqueness, role, service, and agencies
+ * Hashes password before storing
+ * @param {Object} userData - User creation data
+ * @param {string} userData.username - Username (unique)
+ * @param {string} userData.password - Plain text password
+ * @param {string} userData.designation - Full name
+ * @param {number[]} userData.agencies - Array of agency IDs to assign
+ * @param {number} userData.roleId - Role ID
+ * @param {number} userData.serviceId - Service ID
+ * @param {number} userData.lang - Language preference
+ * @param {string} userData.assignedby - Creator's username
+ * @param {Object} logData - Logging metadata
+ * @returns {Promise<Object>} Created user info with ID, username, email, and agencies
+ * @throws {ErrorHandler} 401 - Username taken, role/service/agency not found
+ */
 export const createUser = async (userData, logData) => {
   const {
     password,
@@ -346,6 +407,17 @@ export const createUser = async (userData, logData) => {
   };
 };
 
+/**
+ * Resets a user's password (admin function)
+ * Cannot reset password for deactivated users
+ * @param {Object} userdata - Reset data
+ * @param {number} userdata.userId - User ID
+ * @param {string} userdata.password - New password (plain text)
+ * @param {string} userdata.modifiedby - Admin username
+ * @param {Object} logData - Logging metadata
+ * @returns {Promise<string>} Username of reset user
+ * @throws {ErrorHandler} 401 - User not found or deactivated
+ */
 export const resetUserPassword = async (userdata, logData) => {
   const { userId, password, modifiedby } = userdata;
 
@@ -396,6 +468,19 @@ export const resetUserPassword = async (userdata, logData) => {
   return user.username;
 };
 
+/**
+ * Allows user to change their own password
+ * Requires old password verification
+ * @param {Object} userdata - Password change data
+ * @param {number} userdata.userId - User ID
+ * @param {string} userdata.oldPassword - Current password
+ * @param {string} userdata.newPassword - New password
+ * @param {string} userdata.modifiedby - Username
+ * @param {Object} logData - Logging metadata
+ * @returns {Promise<void>}
+ * @throws {ErrorHandler} 401 - User not found
+ * @throws {ErrorHandler} 403 - Incorrect old password
+ */
 export const changeUserPassword = async (userdata, logData) => {
   const { userId, oldPassword, newPassword, modifiedby } = userdata;
 
@@ -445,6 +530,16 @@ export const changeUserPassword = async (userdata, logData) => {
   });
 };
 
+/**
+ * Unblocks a blocked user account
+ * Resets state to active (1) and clears block code
+ * @param {Object} userdata - Unblock data
+ * @param {number} userdata.userId - User ID
+ * @param {string} userdata.unblockedBy - Admin username
+ * @param {Object} logData - Logging metadata
+ * @returns {Promise<string>} Username of unblocked user
+ * @throws {ErrorHandler} 401 - User not found
+ */
 export const unblockUser = async (userdata, logData) => {
   const { userId, unblockedBy } = userdata;
 
@@ -480,6 +575,16 @@ export const unblockUser = async (userdata, logData) => {
   return user.username;
 };
 
+/**
+ * Blocks a user account with a specific reason code
+ * Block codes: 210 (5 failed logins), 220 (ToS violation)
+ * @param {Object} userdata - Block data
+ * @param {number} userdata.userId - User ID
+ * @param {number} userdata.blockCode - Block reason code (210 or 220)
+ * @param {Object} logData - Logging metadata
+ * @returns {Promise<string>} Username of blocked user
+ * @throws {ErrorHandler} 401 - User not found
+ */
 export const blockUser = async (userdata, logData) => {
   const { userId, blockCode } = userdata;
 
@@ -513,6 +618,17 @@ export const blockUser = async (userdata, logData) => {
   return user.username;
 };
 
+/**
+ * @deprecated Use changeStateUser instead
+ * Activates or deactivates a user account
+ * @param {Object} userdata - State change data
+ * @param {number} userdata.userId - User ID
+ * @param {boolean} userdata.type - true for activate, false for deactivate
+ * @param {string} userdata.changeBy - Admin username
+ * @param {Object} logData - Logging metadata
+ * @returns {Promise<string>} Username
+ * @throws {ErrorHandler} 401 - User not found
+ */
 export const activateUser = async (userdata, logData) => {
   const { userId, type, changeBy } = userdata;
   var updateData = {};
@@ -559,6 +675,18 @@ export const activateUser = async (userdata, logData) => {
   return user.username;
 };
 
+/**
+ * Changes user account state with note
+ * States: 0=Deactivated, 1=Active, 3=Deleted/Trashed
+ * @param {Object} userdata - State change data
+ * @param {number} userdata.userId - User ID
+ * @param {number} userdata.state - New state (0, 1, or 3)
+ * @param {string} userdata.note - Reason for state change
+ * @param {string} userdata.changeBy - Admin username
+ * @param {Object} logData - Logging metadata
+ * @returns {Promise<string>} Username
+ * @throws {ErrorHandler} 401 - User not found
+ */
 export const changeStateUser = async (userdata, logData) => {
   const { userId, state, changeBy, note } = userdata;
   var updateData = {};
@@ -621,6 +749,21 @@ export const changeStateUser = async (userdata, logData) => {
   return user.username;
 };
 
+/**
+ * Updates user information (admin function)
+ * Can update profile, password, and service assignment
+ * Generates detailed log message of changes
+ * @param {Object} userdata - Update data
+ * @param {number} userdata.userId - User ID
+ * @param {string} userdata.modified_by - Admin username
+ * @param {string} userdata.oldPassword - Current password (optional)
+ * @param {string} userdata.newPassword - New password (optional, requires oldPassword)
+ * @param {number} userdata.serviceId - New service ID (optional)
+ * @param {Object} logData - Logging metadata
+ * @returns {Promise<string>} Log message describing changes
+ * @throws {ErrorHandler} 401 - User not found or deactivated
+ * @throws {ErrorHandler} 403 - Incorrect old password
+ */
 export const updateUser = async (userdata, logData) => {
   const { userId, modifiedby, oldPassword, newPassword, serviceId, ...rest } =
     userdata;
@@ -724,6 +867,14 @@ export const updateUser = async (userdata, logData) => {
   return generateLogMessage(user, updatedUser);
 };
 
+/**
+ * Generates detailed log message comparing old and new user data
+ * Converts language codes to readable names
+ * @param {Object} oldUser - Original user data
+ * @param {Object} updatedUser - Updated user data
+ * @returns {string} Formatted log message showing changes
+ * @private
+ */
 function generateLogMessage(oldUser, updatedUser) {
   const changes = [];
   const languageMapping = {
@@ -768,6 +919,19 @@ function generateLogMessage(oldUser, updatedUser) {
   return `Aucun changement détecté pour l'utilisateur "${oldUser.username}".`;
 }
 
+/**
+ * Allows logged-in user to update their own profile
+ * Cannot change service assignment (unlike updateUser)
+ * @param {Object} userdata - Update data
+ * @param {number} userdata.userId - User ID
+ * @param {string} userdata.modified_by - Username
+ * @param {string} userdata.oldPassword - Current password (optional)
+ * @param {string} userdata.newPassword - New password (optional)
+ * @param {Object} logData - Logging metadata
+ * @returns {Promise<string>} Log message describing changes
+ * @throws {ErrorHandler} 401 - User not found or deactivated
+ * @throws {ErrorHandler} 403 - Incorrect old password
+ */
 export const updateLoggedUser = async (userdata, logData) => {
   const { userId, modifiedby, oldPassword, newPassword, ...rest } = userdata;
   let hashedPassword;
@@ -869,6 +1033,21 @@ export const updateLoggedUser = async (userdata, logData) => {
 
   return generateLogMessage(user, updatedUser);
 };
+/**
+ * Assigns multiple agencies to a user
+ * Validates:
+ * - User exists and is active
+ * - Agencies exist
+ * - User doesn't already have the agencies
+ * - Coopération service restriction (only agencies 1 & 2)
+ * @param {Object} data - Assignment data
+ * @param {number} data.userId - User ID
+ * @param {number[]} data.agencies - Array of agency IDs to assign
+ * @param {string} data.assignedBy - Admin username
+ * @param {Object} logData - Logging metadata
+ * @returns {Promise<Object>} Username and assigned agency names
+ * @throws {ErrorHandler} 401 - Validation errors
+ */
 export const addAgencyToUser = async (data, logData) => {
   const { userId, agencies, assignedBy } = data;
   const agencyName = [];
@@ -982,6 +1161,16 @@ export const addAgencyToUser = async (data, logData) => {
   };
 };
 
+/**
+ * Removes an agency from a user's assignments
+ * Prevents removal of last agency (users must have at least one)
+ * @param {Object} data - Removal data
+ * @param {number} data.userId - User ID
+ * @param {number} data.agencyId - Agency ID to remove
+ * @param {Object} logData - Logging metadata
+ * @returns {Promise<Object>} Username and removed agency name
+ * @throws {ErrorHandler} 401 - Validation errors or last agency
+ */
 export const removeAgenciesFromUser = async (data, logData) => {
   const { userId, agencyId } = data;
 
@@ -1072,6 +1261,14 @@ export const removeAgenciesFromUser = async (data, logData) => {
   };
 };
 
+/**
+ * Sets the article refresh interval for a user
+ * @param {Object} data - Refresh time data
+ * @param {number} data.userId - User ID
+ * @param {number} data.refreshTime - Refresh interval in seconds
+ * @returns {Promise<void>}
+ * @throws {ErrorHandler} 401 - User not found
+ */
 export const setRefreshTime = async (data) => {
   const { userId, refreshTime } = data;
 
@@ -1099,6 +1296,13 @@ export const setRefreshTime = async (data) => {
   });
 };
 
+/**
+ * Retrieves menu items for a user based on their role
+ * If menu includes 'Agences', populates with user's assigned agencies
+ * @param {Object} params - Parameters object
+ * @param {number} params.userId - User ID
+ * @returns {Promise<Array>} Array of menu items (strings or objects)
+ */
 export const getAllMenu = async ({ userId }) => {
   // Step 1: Fetch all agencies associated with the user
   const userAgencies = await prisma.online2024_agencies.findMany({

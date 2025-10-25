@@ -1,6 +1,25 @@
+/**
+ * @fileoverview Security Validation Middleware
+ * Detects and blocks security threats in user input:
+ * - SQL Injection
+ * - XSS (Cross-Site Scripting)
+ * - Path Traversal
+ * - Command Injection
+ * - Buffer Overflow
+ * Sends email alerts when threats are detected.
+ * @module middlewares/securityMiddleware
+ */
+
 import nodemailer from "nodemailer";
 import { ErrorHandler } from "./errorMiddleware.js";
+/**
+ * Security validator class for detecting common web vulnerabilities
+ * @class SecurityValidator
+ */
 export class SecurityValidator {
+  /**
+   * Initializes security patterns and email transporter
+   */
   constructor() {
     // SQL Injection patterns
     this.sqlInjectionPattern = new RegExp(
@@ -68,6 +87,13 @@ export class SecurityValidator {
     });
   }
 
+  /**
+   * Sends email alert when security threats are detected
+   * @param {Object} threats - Detected threats object
+   * @param {string} ip - Client IP address
+   * @param {string} endpoint - API endpoint
+   * @returns {Promise<void>}
+   */
   async sendSecurityAlert(threats, ip, endpoint) {
     const emailContent = {
       from: process.env.ADMIN_MAIL,
@@ -90,6 +116,14 @@ export class SecurityValidator {
     }
   }
 
+  /**
+   * Validates input data for security threats
+   * Checks all string fields against security patterns
+   * @param {Object} inputData - Request body/input data
+   * @param {string} [ip="0.0.0.0"] - Client IP address
+   * @param {string} [endpoint="default"] - API endpoint
+   * @returns {Promise<Object>} Threats object with arrays for each threat type
+   */
   async validateInput(inputData, ip = "0.0.0.0", endpoint = "default") {
     const threats = {
       sqlInjection: [],
@@ -149,7 +183,15 @@ export class SecurityValidator {
   }
 }
 
-// Express middleware
+/**
+ * Express middleware wrapper for security validation
+ * Validates request body and blocks requests with detected threats
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {void}
+ * @throws {ErrorHandler} 403 - Security threat detected
+ */
 export const securityMiddleware = async (req, res, next) => {
   const validator = new SecurityValidator();
 

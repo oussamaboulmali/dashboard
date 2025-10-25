@@ -1,3 +1,9 @@
+/**
+ * @fileoverview Authentication Controller
+ * Handles user authentication, login, logout, and session management operations.
+ * @module controllers/authController
+ */
+
 import { ErrorHandler } from "../middlewares/errorMiddleware.js";
 import { SecurityValidator } from "../middlewares/securityMiddleware.js";
 import {
@@ -13,7 +19,12 @@ import {
   logOutSchema,
 } from "../validations/authValidation.js";
 
-// Utility function to extract log request data and send it to the authService
+/**
+ * Extracts log data from request for authentication events
+ * @param {Object} req - Express request object
+ * @param {string} action - Authentication action (login, logout, etc.)
+ * @returns {Object} Log data object with IP, referrer, user agent, and action
+ */
 const Logdata = (req, action) => {
   return {
     ip: req.header("x-forwarded-for") || req.connection.remoteAddress,
@@ -23,7 +34,22 @@ const Logdata = (req, action) => {
   };
 };
 
-// Controller function for user login
+/**
+ * Handles user login with security validation
+ * - Validates username and password
+ * - Checks for SQL injection, XSS, and other security threats
+ * - Verifies account status (active, blocked, deleted)
+ * - Enforces maximum login attempts (5 attempts before blocking)
+ * - Detects existing active sessions
+ * @route POST /api/v1/auth/login
+ * @access Public
+ * @param {string} req.body.username - Username (required, max 30 chars)
+ * @param {string} req.body.password - Password (required, max 30 chars)
+ * @returns {Object} 200 - Successful login with session data or hasSession flag
+ * @returns {Object} 400 - Validation error
+ * @returns {Object} 401 - Invalid credentials
+ * @returns {Object} 403 - Account blocked or has active session
+ */
 export const Login = tryCatch(async (req, res) => {
   // Get IP address from request headers
   const ip = req.header("x-forwarded-for") || req.connection.remoteAddress;
@@ -80,7 +106,18 @@ export const Login = tryCatch(async (req, res) => {
   }
 });
 
-// Controller function for closing an active session and sending OTP
+/**
+ * Closes an existing active session and logs the user in with a new session
+ * Used when a user tries to login but already has an active session
+ * @route POST /api/v1/auth/close
+ * @access Public
+ * @param {number} req.body.sessionId - Existing session ID (required)
+ * @param {number} req.body.userId - User ID (required)
+ * @param {string} req.body.username - Username (required, max 30 chars)
+ * @param {string} req.body.password - Password (required, max 20 chars)
+ * @returns {Object} 200 - Success response with new session data
+ * @returns {Object} 401 - Invalid credentials or session not found
+ */
 export const CloseRunningSession = tryCatch(async (req, res) => {
   // Validate the request body against the schema
   const { error } = closeSessionSchema.validate(req.body);
@@ -120,6 +157,15 @@ export const CloseRunningSession = tryCatch(async (req, res) => {
   });
 });
 
+/**
+ * Logs out the current user by destroying their session
+ * @route POST /api/v1/auth/logout
+ * @access Private (Authenticated)
+ * @param {string} req.body.username - Username (optional, max 30 chars)
+ * @returns {Object} 200 - Success response
+ * @returns {Object} 404 - Session not found
+ * @returns {Object} 500 - Error destroying session
+ */
 export const Logout = tryCatch(async (req, res) => {
   // Validate the request body against the schema
   const { error } = logOutSchema.validate(req.body);
@@ -156,6 +202,20 @@ export const Logout = tryCatch(async (req, res) => {
   });
 });
 
+/**
+ * Retrieves dashboard statistics based on user role
+ * - For regular users (role 2): Returns last 20 articles from assigned agencies
+ * - For admin users: Returns comprehensive statistics including:
+ *   - Connected users today
+ *   - User statistics by state (active, deactivated, blocked, trashed)
+ *   - Total articles count
+ *   - Articles per day for last 7 days
+ *   - Articles per agency today
+ *   - Agency statistics
+ * @route POST /api/v1/auth/stats
+ * @access Private (Authenticated)
+ * @returns {Object} 200 - Success response with statistics data
+ */
 export const GetStatistics = tryCatch(async (req, res) => {
   const data = await getStatistics({ userId: req.session.userId });
 

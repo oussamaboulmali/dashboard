@@ -1,7 +1,16 @@
+/**
+ * @fileoverview Redis Configuration
+ * Sets up Redis client and session store for session management.
+ * @module configs/cache
+ */
+
 import { RedisStore } from "connect-redis";
 import { createClient } from "redis";
 
-// Create a Redis client and connect with password
+/**
+ * Redis client instance
+ * @type {RedisClientType}
+ */
 const redisClient = createClient({
   host: process.env.REDIS_HOST,
   port: process.env.REDIS_PORT,
@@ -17,6 +26,10 @@ redisClient.on("connect", () => {
   console.log("Successfully connected to Redis");
 });
 
+/**
+ * Redis session store for Express sessions
+ * @type {RedisStore}
+ */
 const redisStore = new RedisStore({
   client: redisClient,
   prefix: "onlineapp:",

@@ -1,3 +1,15 @@
+/**
+ * @fileoverview Block Message Definitions
+ * Predefined messages for user account blocking reasons.
+ * @module utils/blockMessage
+ */
+
+/**
+ * Block message definitions with codes
+ * @type {Object}
+ * @property {Object} 210 - Failed login attempts block
+ * @property {Object} 220 - Terms of service violation block
+ */
 export const blockMessage = {
   210: {
     log: "après 5 tentatives de connexion échoués.",
