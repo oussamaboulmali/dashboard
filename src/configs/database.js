@@ -1,5 +1,16 @@
+/**
+ * @fileoverview Prisma Database Configuration
+ * Initializes Prisma Client for database operations.
+ * @module configs/database
+ */
+
 import { PrismaClient } from "@prisma/client";
 import { buildDatabaseUrl } from "../utils/dbUrl.js";
+/**
+ * Prisma Client instance
+ * Configured with custom database URL from environment variables
+ * @type {PrismaClient}
+ */
 const prisma = new PrismaClient({
   datasourceUrl: buildDatabaseUrl(),
   // log: [

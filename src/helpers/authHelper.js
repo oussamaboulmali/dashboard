@@ -1,5 +1,20 @@
+/**
+ * @fileoverview Authentication Helper
+ * Provides email sending functionality for authentication and security alerts.
+ * @module helpers/authHelper
+ */
+
 import nodemailer from "nodemailer";
 
+/**
+ * Sends security alert email to administrators
+ * Used for account blocking, security violations, and critical events
+ * @param {string} message - Alert message content
+ * @returns {Promise<Object>} Email send result with info
+ * @throws {Error} If email fails to send
+ * @example
+ * await sendEmail('User account blocked due to suspicious activity');
+ */
 export const sendEmail = async (message) => {
   try {
     const transporter = nodemailer.createTransport({

@@ -1,9 +1,25 @@
+/**
+ * @fileoverview Logging Configuration
+ * Comprehensive logging setup using Winston with daily log rotation.
+ * Provides separate loggers for different categories:
+ * - User errors (authentication, authorization)
+ * - Server errors (application errors)
+ * - Database errors (Prisma errors)
+ * - Info logs (user actions, organized by folder)
+ * - Denied access logs
+ * - HTTP request logs
+ * @module utils/logger
+ */
+
 import morgan from "morgan";
 import winston from "winston";
 import DailyRotateFile from "winston-daily-rotate-file";
 import dotenv from "dotenv";
 dotenv.config();
-// Log errors to the file logger
+/**
+ * Winston color scheme for log levels
+ * @type {Object}
+ */
 const colors = {
   error: "red",
   warn: "yellow",
@@ -13,6 +29,12 @@ const colors = {
 };
 
 winston.addColors(colors);
+
+/**
+ * Logger for user-related errors (invalid credentials, unauthorized access, etc.)
+ * Logs to console and daily rotating files in logs/user-errors/
+ * @type {winston.Logger}
+ */
 export const userErrorLogger = winston.createLogger({
   level: "error",
   format: winston.format.combine(
@@ -73,6 +95,11 @@ export const userErrorLogger = winston.createLogger({
   ],
 });
 
+/**
+ * Logger for server/application errors
+ * Logs to console and daily rotating files in logs/server-errors/
+ * @type {winston.Logger}
+ */
 export const serverErrorLogger = winston.createLogger({
   level: "error",
   format: winston.format.combine(
@@ -132,6 +159,11 @@ export const serverErrorLogger = winston.createLogger({
   ],
 });
 
+/**
+ * Logger for database errors (Prisma errors)
+ * Logs to console and daily rotating files in logs/db-errors/
+ * @type {winston.Logger}
+ */
 export const dbErrorLogger = winston.createLogger({
   level: "error",
   format: winston.format.combine(
@@ -191,6 +223,10 @@ export const dbErrorLogger = winston.createLogger({
   ],
 });
 
+/**
+ * Logger for HTTP requests (used by Morgan)
+ * @type {winston.Logger}
+ */
 export const Httplogger = winston.createLogger({
   format: winston.format.combine(
     winston.format.colorize(),
@@ -202,6 +238,11 @@ export const Httplogger = winston.createLogger({
   transports: [new winston.transports.Console({ level: "http" })],
 });
 
+/**
+ * Morgan HTTP request logger configuration
+ * Logs all HTTP requests with method, URL, status, content length, and response time
+ * @type {Function}
+ */
 export const morganConfig = morgan(
   ":method :url :status :res[content-length] - :response-time ms",
   {
@@ -211,6 +252,11 @@ export const morganConfig = morgan(
   }
 );
 
+/**
+ * Generic logger for exceptions and rejections
+ * @type {winston.Logger}
+ * @private
+ */
 const logger = winston.createLogger({
   level: "error",
   format: winston.format.combine(
@@ -246,6 +292,15 @@ const logger = winston.createLogger({
   ],
 });
 
+/**
+ * Factory function to create info loggers for different categories
+ * Each category logs to its own folder under logs_info/
+ * @param {string} folderName - Category folder name (e.g., 'utilisateurs', 'agences')
+ * @returns {winston.Logger} Configured winston logger
+ * @example
+ * const logger = infoLogger('users');
+ * logger.info({ username: 'john', action: 'login', message: 'User logged in successfully' });
+ */
 export const infoLogger = (folderName) => {
   return winston.createLogger({
     level: "info",
@@ -297,6 +352,11 @@ export const infoLogger = (folderName) => {
   });
 };
 
+/**
+ * Logger for denied access attempts and failed logins
+ * Logs to console and daily rotating files in logs_info/erreurs_connexion/
+ * @type {winston.Logger}
+ */
 export const deniedLogger = winston.createLogger({
   level: "error",
   format: winston.format.combine(

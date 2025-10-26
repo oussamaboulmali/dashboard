@@ -1,3 +1,9 @@
+/**
+ * @fileoverview Authentication Service
+ * Handles user authentication, session management, and dashboard statistics.
+ * @module services/authService
+ */
+
 import bcrypt from "bcryptjs";
 import prisma from "../configs/database.js";
 import { ErrorHandler } from "../middlewares/errorMiddleware.js";
@@ -6,7 +12,22 @@ import { blockMessage } from "../utils/blockMessage.js";
 import { subDays, startOfDay } from "date-fns";
 import { sendEmail } from "../helpers/authHelper.js";
 
-// Function to authenticate user login
+/**
+ * Authenticates user login with comprehensive security checks
+ * - Verifies username and password
+ * - Checks account state (active/deactivated/blocked/deleted)
+ * - Enforces maximum login attempts (5 before auto-blocking)
+ * - Detects existing active sessions
+ * - Creates new session if authenticated
+ * @param {Object} userData - Login credentials
+ * @param {string} userData.username - Username
+ * @param {string} userData.password - Plain text password
+ * @param {string} userData.ip - Client IP address
+ * @param {Object} logdata - Logging metadata
+ * @returns {Promise<Object>} Login result with session data or hasSession flag
+ * @throws {ErrorHandler} 401 - Invalid username or password
+ * @throws {ErrorHandler} 403 - Account blocked or deleted
+ */
 export const login = async (userData, logdata) => {
   const { username, password, ip } = userData;
 
@@ -169,7 +190,19 @@ export const login = async (userData, logdata) => {
   };
 };
 
-// Close the current session and send OTP  to the user's email for re-verification.
+/**
+ * Closes an existing active session for re-login
+ * Validates user credentials before closing the session
+ * @param {Object} userData - User and session data
+ * @param {number} userData.sessionId - Session ID to close
+ * @param {number} userData.userId - User ID
+ * @param {string} userData.username - Username
+ * @param {string} userData.password - Password for verification
+ * @param {Object} logdata - Logging metadata
+ * @returns {Promise<void>}
+ * @throws {ErrorHandler} 401 - Invalid credentials or user not found
+ * @throws {ErrorHandler} 404 - Session not found
+ */
 export const closeSessionAndLogin = async (userData, logdata) => {
   const { sessionId, userId, password, username } = userData;
 
@@ -270,7 +303,14 @@ export const closeSessionAndLogin = async (userData, logdata) => {
   });
 };
 
-// Log out the user by closing the current session.
+/**
+ * Logs out user by marking their session as inactive
+ * @param {Object} userData - Logout data
+ * @param {number} userData.sessionId - Session ID to close
+ * @param {Object} logdata - Logging metadata
+ * @returns {Promise<void>}
+ * @throws {ErrorHandler} 404 - Session not found
+ */
 export const logout = async (userData, logdata) => {
   const { sessionId } = userData;
 
@@ -294,7 +334,13 @@ export const logout = async (userData, logdata) => {
     data: { is_active: false, logout_date: new Date() },
   });
 };
-// Log out the user by closing the current session.
+/**
+ * Forcefully logs out another user (admin function)
+ * Used when resetting passwords, blocking, or changing user state
+ * @param {Object} userData - User data
+ * @param {number} userData.userId - User ID to logout
+ * @returns {Promise<void>}
+ */
 export const logoutOtherUser = async (userData) => {
   const { userId } = userData;
 
@@ -323,6 +369,19 @@ export const logoutOtherUser = async (userData) => {
   }
 };
 
+/**
+ * Retrieves dashboard statistics based on user role
+ * Regular users (role 2): Get last 20 articles from their agencies
+ * Admin users: Get comprehensive statistics including:
+ * - User counts by state
+ * - Connected users today
+ * - Total articles count
+ * - Articles per day (last 7 days)
+ * - Articles per agency today
+ * @param {Object} params - Parameters object
+ * @param {number} params.userId - User ID
+ * @returns {Promise<Object>} Statistics object (format varies by role)
+ */
 export const getStatistics = async ({ userId }) => {
   const today = startOfDay(new Date());
   const oneWeekAgo = subDays(today, 6); // Includes today, total of 7 days

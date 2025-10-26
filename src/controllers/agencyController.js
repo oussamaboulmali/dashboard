@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Agency Controller
+ * Handles all agency-related operations including creation, updates, article management,
+ * and user-agency relationships.
+ * @module controllers/agencyController
+ */
+
 import { ErrorHandler } from "../middlewares/errorMiddleware.js";
 import {
   addUsersToAgency,
@@ -30,6 +37,15 @@ import {
 } from "../validations/agencyValidation.js";
 
 const logger = infoLogger("agences");
+
+/**
+ * Creates a custom log object with request metadata
+ * @param {Object} params - Parameters object
+ * @param {Object} params.req - Express request object
+ * @param {string} params.message - Log message
+ * @param {string} params.action - Action being performed
+ * @returns {Object} Formatted log object with IP, user agent, and other metadata
+ */
 const customLog = ({ req, message, action }) => {
   const msg = message ?? "";
   return {
@@ -42,7 +58,17 @@ const customLog = ({ req, message, action }) => {
   };
 };
 
-// Controller function for creating a new agency
+/**
+ * Creates a new news agency with logo upload
+ * @route POST /api/v1/agencies/create
+ * @access Private (Menu ID: 3)
+ * @param {Object} req.body.name - Agency name (required, max 40 chars)
+ * @param {Object} req.body.name_ar - Agency name in Arabic (required, max 50 chars)
+ * @param {File} req.file - Agency logo image (required, max 1MB, jpg/png only)
+ * @returns {Object} 201 - Success response with agency ID and logo URL
+ * @returns {Object} 400 - Validation error
+ * @returns {Object} 401 - Agency name already exists
+ */
 export const CreateAgency = tryCatch(async (req, res) => {
   // Validate the request body
   const { error } = agencySchema.validate({
@@ -86,7 +112,12 @@ export const CreateAgency = tryCatch(async (req, res) => {
   });
 });
 
-// Controller function for creating a new agency
+/**
+ * Retrieves all news agencies
+ * @route POST /api/v1/agencies
+ * @access Private (Authenticated)
+ * @returns {Object} 200 - Success response with array of all agencies
+ */
 export const GetAllAgencies = tryCatch(async (req, res) => {
   const data = await getAllAgencies(req.body);
 
@@ -97,6 +128,14 @@ export const GetAllAgencies = tryCatch(async (req, res) => {
   });
 });
 
+/**
+ * Retrieves detailed information about a specific agency
+ * @route POST /api/v1/agencies/detail
+ * @access Private (Authenticated)
+ * @param {number} req.body.agencyId - Agency ID (required)
+ * @returns {Object} 200 - Success response with agency details including assigned users
+ * @returns {Object} 404 - Agency not found
+ */
 export const GetOneAgency = tryCatch(async (req, res) => {
   // Validate the request body
   const { error } = agencyIdSchema.validate(req.body);
@@ -122,6 +161,14 @@ export const GetOneAgency = tryCatch(async (req, res) => {
   });
 });
 
+/**
+ * Retrieves a single article by ID
+ * @route POST /api/v1/agencies/articles/detail
+ * @access Private (Menu ID: 2)
+ * @param {number} req.body.articleId - Article ID (required)
+ * @returns {Object} 200 - Success response with article details
+ * @returns {Object} 404 - Article not found
+ */
 export const GetOneArticle = tryCatch(async (req, res) => {
   // Validate the request body
   const { error } = articleIdSchema.validate(req.body);
@@ -147,6 +194,18 @@ export const GetOneArticle = tryCatch(async (req, res) => {
   });
 });
 
+/**
+ * Retrieves paginated articles for a specific agency
+ * @route POST /api/v1/agencies/articles
+ * @access Private (Menu ID: 2)
+ * @param {number} req.body.agencyId - Agency ID (required)
+ * @param {number} req.body.pageSize - Number of articles per page (required)
+ * @param {number} req.body.page - Page number (required)
+ * @param {string} req.body.date - Date filter (ISO format)
+ * @param {Object} req.body.order - Sort order object {field: 'asc'|'desc'}
+ * @returns {Object} 200 - Success response with articles array, count, and refresh time
+ * @returns {Object} 401 - User doesn't have access to this agency
+ */
 export const GetArticlesOfAgency = tryCatch(async (req, res) => {
   // Validate the request body
   const { error } = getArticlesSchema.validate(req.body);
@@ -175,6 +234,12 @@ export const GetArticlesOfAgency = tryCatch(async (req, res) => {
   });
 });
 
+/**
+ * Retrieves all active agencies assigned to the current user
+ * @route POST /api/v1/agencies/users/list
+ * @access Private (Menu ID: 2)
+ * @returns {Object} 200 - Success response with array of user's agencies
+ */
 export const GetAgenciesOfuser = tryCatch(async (req, res) => {
   //oussama => req.session.userId
   // dont forgate to change it
@@ -229,6 +294,20 @@ export const GetAgenciesOfuser = tryCatch(async (req, res) => {
 //   });
 // });
 
+/**
+ * Searches articles within a specific agency
+ * @route POST /api/v1/agencies/articles/search
+ * @access Private (Menu ID: 2)
+ * @param {number} req.body.agencyId - Agency ID (required)
+ * @param {string} req.body.searchText - Search text (can be empty)
+ * @param {number} req.body.pageSize - Number of results per page (required)
+ * @param {number} req.body.page - Page number (required)
+ * @param {string} req.body.date - Single date filter (ISO format)
+ * @param {string} req.body.date_start - Start date for range filter (ISO format)
+ * @param {string} req.body.date_finish - End date for range filter (ISO format)
+ * @param {Object} req.body.order - Sort order
+ * @returns {Object} 200 - Success response with matching articles and count
+ */
 export const SearchArticlesOfAgency = tryCatch(async (req, res) => {
   // Validate the request body
   const { error } = searchArticlesSchema.validate(req.body);
@@ -257,6 +336,19 @@ export const SearchArticlesOfAgency = tryCatch(async (req, res) => {
   });
 });
 
+/**
+ * Searches articles across all user's assigned agencies
+ * @route POST /api/v1/agencies/articles/searchAll
+ * @access Private (Menu ID: 2)
+ * @param {string} req.body.searchText - Search text (can be empty)
+ * @param {number} req.body.pageSize - Number of results per page (default: 20)
+ * @param {number} req.body.page - Page number (required)
+ * @param {string} req.body.date - Single date filter (ISO format)
+ * @param {string} req.body.date_start - Start date for range filter (ISO format)
+ * @param {string} req.body.date_finish - End date for range filter (ISO format)
+ * @param {Object} req.body.order - Sort order
+ * @returns {Object} 200 - Success response with matching articles from all agencies
+ */
 export const SearchArticlesGlobale = tryCatch(async (req, res) => {
   // Validate the request body
   const { error } = searchGlobaleSchema.validate(req.body);
@@ -285,7 +377,15 @@ export const SearchArticlesGlobale = tryCatch(async (req, res) => {
   });
 });
 
-// Controller function to change the state of a category (activate/deactivate)
+/**
+ * Toggles agency state (activate/deactivate)
+ * When deactivating, all user-agency relationships are removed
+ * @route PUT /api/v1/agencies/state
+ * @access Private (Menu ID: 3)
+ * @param {number} req.body.agencyId - Agency ID (required)
+ * @returns {Object} 201 - Success response
+ * @returns {Object} 401 - Agency not found
+ */
 export const ChangeStateAgency = tryCatch(async (req, res) => {
   // Validate the request body against schema
   const { error } = agencyIdSchema.validate(req.body);
@@ -330,6 +430,15 @@ export const ChangeStateAgency = tryCatch(async (req, res) => {
   });
 });
 
+/**
+ * Retrieves all users who are NOT assigned to a specific agency
+ * Used for assigning new users to an agency
+ * @route POST /api/v1/agencies/other
+ * @access Private (Menu ID: 3)
+ * @param {number} req.body.agencyId - Agency ID (required)
+ * @returns {Object} 200 - Success response with array of available users
+ * @returns {Object} 401 - Agency not found
+ */
 export const GetUsersWithOtherAgencies = tryCatch(async (req, res) => {
   // Validate the request body
   const { error } = agencyIdSchema.validate(req.body);
@@ -355,6 +464,17 @@ export const GetUsersWithOtherAgencies = tryCatch(async (req, res) => {
   });
 });
 
+/**
+ * Updates agency information (name, Arabic name, logo)
+ * @route PUT /api/v1/agencies/update
+ * @access Private (Menu ID: 3)
+ * @param {number} req.body.agencyId - Agency ID (required)
+ * @param {string} req.body.name - New agency name (optional, max 40 chars)
+ * @param {string} req.body.name_ar - New Arabic name (optional, max 50 chars)
+ * @param {File} req.file - New logo image (optional, max 1MB)
+ * @returns {Object} 200 - Success response with updated data
+ * @returns {Object} 401 - Agency not found or name already taken
+ */
 export const UpdateAgency = tryCatch(async (req, res) => {
   // Validate the request body
   const { error } = agencyUpdateSchema.validate({
@@ -399,6 +519,16 @@ export const UpdateAgency = tryCatch(async (req, res) => {
   });
 });
 
+/**
+ * Assigns multiple users to an agency
+ * Validates that Coopération service users can only access APS agencies (ID 1 & 2)
+ * @route POST /api/v1/agencies/users
+ * @access Private (Menu ID: 3)
+ * @param {number} req.body.agencyId - Agency ID (required)
+ * @param {number[]} req.body.users - Array of user IDs to assign (required, min 1)
+ * @returns {Object} 200 - Success response
+ * @returns {Object} 401 - Validation errors (agency not found, user not found, already assigned, etc.)
+ */
 export const AddUsersToAgency = tryCatch(async (req, res) => {
   // Validate the request body
   const { error } = agencyUsersSchema.validate(req.body);
@@ -437,6 +567,15 @@ export const AddUsersToAgency = tryCatch(async (req, res) => {
   });
 });
 
+/**
+ * Removes a user's access to a specific agency
+ * @route PUT /api/v1/agencies/users
+ * @access Private (Menu ID: 3)
+ * @param {number} req.body.agencyId - Agency ID (required)
+ * @param {number} req.body.userId - User ID to remove (required)
+ * @returns {Object} 200 - Success response
+ * @returns {Object} 401 - Agency not found or user doesn't have this agency
+ */
 export const RemoveUsersFromAgency = tryCatch(async (req, res) => {
   // Validate the request body
   const { error } = agencyUserRemoveSchema.validate(req.body);

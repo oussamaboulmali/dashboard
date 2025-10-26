@@ -1,10 +1,26 @@
+/**
+ * @fileoverview Rate Limiting Middleware
+ * Protects API from abuse with rate limiting and IP blocking.
+ * - Limits requests to 10 per second per IP
+ * - Blocks violating IPs for 1 hour
+ * - Sends email notifications for violations
+ * @module middlewares/rateLimitMiddleware
+ */
+
 import rateLimit from "express-rate-limit";
 import nodemailer from "nodemailer";
 
-// Map to store IPs and their notification timestamps
+/**
+ * Tracks IP addresses and their last notification time
+ * Prevents spam of notification emails (max 1 per IP per 24 hours)
+ * @type {Map<string, number>}
+ */
 const notificationTracker = new Map();
 
-// Configure email transporter (replace with your email settings)
+/**
+ * Email transporter for sending rate limit notifications
+ * @type {nodemailer.Transporter}
+ */
 const transporter = nodemailer.createTransport({
   host: "mail.aps.dz",
   port: 25,
@@ -17,7 +33,13 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// Function to send notification email
+/**
+ * Sends email notification when IP exceeds rate limit
+ * @param {string} ipAddress - Blocked IP address
+ * @param {string} endpoint - API endpoint that was hit
+ * @returns {Promise<void>}
+ * @private
+ */
 const sendNotificationEmail = async (ipAddress, endpoint) => {
   try {
     await transporter.sendMail({
@@ -37,7 +59,13 @@ const sendNotificationEmail = async (ipAddress, endpoint) => {
   }
 };
 
-// Function to check if we should send a notification
+/**
+ * Checks if we should send notification for this IP
+ * Limits to one notification per IP per 24 hours
+ * @param {string} ipAddress - IP address to check
+ * @returns {boolean} True if notification should be sent
+ * @private
+ */
 const shouldNotifyForIP = (ipAddress) => {
   const now = Date.now();
   const lastNotification = notificationTracker.get(ipAddress);
@@ -49,10 +77,20 @@ const shouldNotifyForIP = (ipAddress) => {
   return false;
 };
 
-// Store for blocked IPs
+/**
+ * Stores blocked IP addresses with timestamp and hit count
+ * @type {Map<string, {timestamp: number, hitCount: number}>}
+ */
 const blockedIPs = new Map();
 
-// Middleware to check for blocked IPs
+/**
+ * Middleware to check if IP is currently blocked
+ * Blocks last for 1 hour from last violation
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {void}
+ */
 const blockMiddleware = (req, res, next) => {
   const ipAddress =
     req.header("x-forwarded-for") || req.connection.remoteAddress;
@@ -80,7 +118,11 @@ const blockMiddleware = (req, res, next) => {
   next();
 };
 
-// Rate limit middleware
+/**
+ * Rate limiting middleware configuration
+ * Limits: 10 requests per second per IP
+ * @type {Function}
+ */
 export const rateLimitMiddleware = rateLimit({
   windowMs: 1000, // 1 minute window for rate limiting
   limit: 10, // limit each IP to 100 requests per minute
@@ -110,7 +152,11 @@ export const rateLimitMiddleware = rateLimit({
   },
 });
 
-// Export combined middleware
+/**
+ * Combined rate limiting middleware
+ * Applies both IP block checking and rate limiting
+ * @type {Array<Function>}
+ */
 export const combinedRateLimitMiddleware = [
   blockMiddleware,
   rateLimitMiddleware,

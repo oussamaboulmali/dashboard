@@ -1,7 +1,22 @@
+/**
+ * @fileoverview Image Processing Helper
+ * Handles image upload, processing, and storage for agency logos.
+ * @module helpers/imageHelper
+ */
+
 import sharp from "sharp";
 import fs from "fs";
 import path from "path";
-// Function to process and store images
+/**
+ * Processes and stores uploaded images
+ * - Uses Sharp library for image processing
+ * - Stores in original quality
+ * - Determines storage path based on environment (local vs production)
+ * @param {string} imagePath - Temporary upload path
+ * @param {string} filename - Generated filename
+ * @param {string} originalname - Original uploaded filename
+ * @returns {Promise<string>} Stored image filename
+ */
 export const processAndStoreImages = async (
   imagePath,
   filename,
@@ -23,7 +38,11 @@ export const processAndStoreImages = async (
   return path.basename(storedImagePath);
 };
 
-// Function to ensure a directory exists, create if not
+/**
+ * Ensures directory exists, creates recursively if not
+ * @param {string} directory - Directory path
+ * @private
+ */
 const ensureDirectoryExists = (directory) => {
   if (!fs.existsSync(directory)) {
     fs.mkdirSync(directory, { recursive: true });

@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Agency Service
+ * Business logic for agency operations including CRUD, article management,
+ * and user-agency relationship management.
+ * @module services/agencyService
+ */
+
 import { urlencoded } from "express";
 import prisma from "../configs/database.js";
 import { processAndStoreImages } from "../helpers/imageHelper.js";
@@ -7,6 +14,13 @@ import redisClient from "../configs/cache.js";
 
 const logger = infoLogger("agences");
 
+/**
+ * Creates a URL-friendly alias from agency name
+ * @param {string} input - Agency name
+ * @returns {string} Lowercase, hyphenated alias
+ * @example
+ * createAlias("APS Algérie") // returns "aps-algerie"
+ */
 const createAlias = (input) => {
   return input
     .toLowerCase() // Convert to lowercase
@@ -14,6 +28,17 @@ const createAlias = (input) => {
     .replace(/[^\w-]/g, ""); // Remove any character that is not a word, hyphen, or underscore
 };
 
+/**
+ * Creates a new news agency with logo upload
+ * @param {Object} data - Agency data
+ * @param {string} data.name - Agency name (unique)
+ * @param {string} data.name_ar - Agency name in Arabic
+ * @param {Object} data.file - Uploaded logo file
+ * @param {string} data.createdBy - Username of creator
+ * @param {Object} logData - Logging metadata
+ * @returns {Promise<Object>} Created agency with ID and logo URL
+ * @throws {ErrorHandler} 401 - If logo missing or name already exists
+ */
 export const createAgency = async (data, logData) => {
   const { file, createdBy, name, name_ar } = data;
   if (file === undefined) {
@@ -63,6 +88,11 @@ export const createAgency = async (data, logData) => {
   return { agencyId: newAgency.id_agency, url: newAgency.url };
 };
 
+/**
+ * Retrieves all agencies ordered by creation date (newest first)
+ * @returns {Promise<Array>} Array of all agencies
+ * @throws {ErrorHandler} 404 - If no agencies found
+ */
 export const getAllAgencies = async () => {
   const agencys = await prisma.online2024_agencies.findMany({
     orderBy: {
@@ -77,6 +107,12 @@ export const getAllAgencies = async () => {
   return agencys;
 };
 
+/**
+ * Retrieves all active agencies assigned to a specific user
+ * @param {Object} params - Parameters object
+ * @param {number} params.userId - User ID
+ * @returns {Promise<Array>} Array of user's active agencies with ID, name, name_ar, alias, URL
+ */
 export const getAgenciesOfuser = async ({ userId }) => {
   const userAgencies = await prisma.online2024_agencies.findMany({
     where: {
@@ -102,6 +138,13 @@ export const getAgenciesOfuser = async ({ userId }) => {
   return userAgencies;
 };
 
+/**
+ * Retrieves detailed agency information including assigned users
+ * @param {Object} params - Parameters object
+ * @param {number} params.agencyId - Agency ID
+ * @returns {Promise<Object>} Agency details with assigned users array
+ * @throws {ErrorHandler} 404 - If agency not found
+ */
 export const getOneAgency = async ({ agencyId }) => {
   const agency = await prisma.online2024_agencies.findUnique({
     where: { id_agency: agencyId },
@@ -141,6 +184,14 @@ export const getOneAgency = async ({ agencyId }) => {
   };
 };
 
+/**
+ * Retrieves users who are NOT assigned to a specific agency
+ * Excludes deactivated users (state 0)
+ * @param {Object} params - Parameters object
+ * @param {number} params.agencyId - Agency ID
+ * @returns {Promise<Array>} Array of available users with role and service info
+ * @throws {ErrorHandler} 401 - If agency not found
+ */
 export const getOtherUsersOfAgencie = async ({ agencyId }) => {
   const existingAgency = await prisma.online2024_agencies.findUnique({
     where: { id_agency: agencyId, state: true },
@@ -190,6 +241,19 @@ export const getOtherUsersOfAgencie = async ({ agencyId }) => {
   return formatedUsers;
 };
 
+/**
+ * Updates agency information (name, Arabic name, and/or logo)
+ * Generates a detailed log message showing what changed
+ * @param {Object} data - Update data
+ * @param {number} data.agencyId - Agency ID
+ * @param {string} data.name - New agency name (optional)
+ * @param {string} data.name_ar - New Arabic name (optional)
+ * @param {Object} data.file - New logo file (optional)
+ * @param {string} data.modifiedBy - Username of modifier
+ * @param {Object} logData - Logging metadata
+ * @returns {Promise<Object>} Log message and updated logo URL
+ * @throws {ErrorHandler} 401 - If agency not found or name already taken
+ */
 export const updateAgency = async (data, logData) => {
   const { file, modifiedBy, agencyId, name, name_ar } = data;
   let processedImageUrl;
@@ -258,6 +322,13 @@ export const updateAgency = async (data, logData) => {
   };
 };
 
+/**
+ * Generates a detailed log message comparing old and new agency data
+ * @param {Object} oldAgency - Original agency data
+ * @param {Object} updatedAgency - Updated agency data
+ * @returns {string} Formatted log message showing changes
+ * @private
+ */
 function generateLogMessage(oldAgency, updatedAgency) {
   const changes = [];
 
@@ -279,7 +350,16 @@ function generateLogMessage(oldAgency, updatedAgency) {
   return `Aucun changement détecté pour l'agence "${oldAgency.name}".`;
 }
 
-// Function to change the state (activate/deactivate) of a category
+/**
+ * Toggles agency state between active and inactive
+ * When deactivating, removes all user-agency relationships
+ * @param {Object} userData - User and agency data
+ * @param {number} userData.agencyId - Agency ID
+ * @param {string} userData.changeBy - Username performing the action
+ * @param {Object} logData - Logging metadata
+ * @returns {Promise<Object>} Agency name and previous state
+ * @throws {ErrorHandler} 401 - If agency not found
+ */
 export const changeStateAgency = async (userData, logData) => {
   const { agencyId, changeBy } = userData;
   // Check if the category to change state exists in the database
@@ -324,6 +404,21 @@ export const changeStateAgency = async (userData, logData) => {
   return { name: existingAgency.name, state: existingAgency.state };
 };
 
+/**
+ * Assigns multiple users to an agency
+ * Validates:
+ * - Agency exists
+ * - All users exist
+ * - Users don't already have the agency
+ * - Coopération service users can only access APS agencies (ID 1 or 2)
+ * @param {Object} data - Assignment data
+ * @param {number} data.agencyId - Agency ID
+ * @param {number[]} data.users - Array of user IDs to assign
+ * @param {string} data.assignedBy - Username performing assignment
+ * @param {Object} logData - Logging metadata
+ * @returns {Promise<Object>} Agency name and array of assigned user info
+ * @throws {ErrorHandler} 401 - Validation errors
+ */
 export const addUsersToAgency = async (data, logData) => {
   const { agencyId, users, assignedBy } = data;
   const usersName = [];
@@ -428,6 +523,15 @@ export const addUsersToAgency = async (data, logData) => {
   };
 };
 
+/**
+ * Removes a user's access to a specific agency
+ * @param {Object} data - Removal data
+ * @param {number} data.agencyId - Agency ID
+ * @param {number} data.userId - User ID to remove
+ * @param {Object} logData - Logging metadata
+ * @returns {Promise<Object>} Agency name and removed username
+ * @throws {ErrorHandler} 401 - If agency not found or user doesn't have agency
+ */
 export const removeUsersFromAgency = async (data, logData) => {
   const { agencyId, userId } = data;
 
@@ -485,6 +589,20 @@ export const removeUsersFromAgency = async (data, logData) => {
   };
 };
 
+/**
+ * Retrieves paginated articles for a specific agency on a given date
+ * Verifies user has access to the agency
+ * @param {Object} data - Query parameters
+ * @param {number} data.agencyId - Agency ID
+ * @param {number} data.userId - User ID (for access verification)
+ * @param {number} data.pageSize - Articles per page (default: 10)
+ * @param {number} data.page - Page number (default: 1)
+ * @param {string} data.date - Date to filter articles (ISO format)
+ * @param {Object} data.order - Sort order (default: {created_date: 'desc'})
+ * @param {Object} logData - Logging metadata
+ * @returns {Promise<Object>} Articles array, total count, and user's refresh time
+ * @throws {ErrorHandler} 401 - If user doesn't have access to agency
+ */
 export const getArticlesOfAgency = async (data, logData) => {
   const {
     agencyId,
@@ -578,6 +696,13 @@ export const getArticlesOfAgency = async (data, logData) => {
   };
 };
 
+/**
+ * @deprecated Use getArticlesOfAgency instead
+ * Retrieves paginated articles with Redis caching (experimental)
+ * @param {Object} data - Query parameters
+ * @param {Object} logData - Logging metadata
+ * @returns {Promise<Object>} Articles array and count
+ */
 export const getArticlesOfAgency2 = async (data, logData) => {
   const {
     agencyId,
@@ -664,6 +789,24 @@ export const getArticlesOfAgency2 = async (data, logData) => {
   return { articles: artcilesFormated, count: articlesCount };
 };
 
+/**
+ * Searches articles within a specific agency by text and date range
+ * Supports single date or date range filtering
+ * Searches in title, slug, and full_text fields
+ * @param {Object} data - Search parameters
+ * @param {number} data.agencyId - Agency ID
+ * @param {number} data.userId - User ID (for access verification)
+ * @param {string} data.searchText - Search query (can be empty string)
+ * @param {number} data.pageSize - Results per page (default: 10)
+ * @param {number} data.page - Page number (default: 1)
+ * @param {string} data.date - Single date filter (ISO format)
+ * @param {string} data.date_start - Range start date (ISO format)
+ * @param {string} data.date_finish - Range end date (ISO format)
+ * @param {Object} data.order - Sort order (default: {created_date: 'desc'})
+ * @returns {Promise<Object>} Matching articles array and total count
+ * @throws {ErrorHandler} 400 - Invalid date range or missing date parameters
+ * @throws {ErrorHandler} 401 - User doesn't have access to agency
+ */
 export const searchArticlesOfAgency = async (data) => {
   const {
     agencyId,
@@ -824,6 +967,13 @@ export const searchArticlesOfAgency = async (data) => {
   return { articles: artcilesFormated, count: articlesCount };
 };
 
+/**
+ * Retrieves a single article by ID with agency information
+ * @param {Object} params - Parameters object
+ * @param {number} params.articleId - Article ID
+ * @returns {Promise<Object>} Article details with agency name
+ * @throws {ErrorHandler} 404 - If article not found
+ */
 export const getOneArticle = async ({ articleId }) => {
   const article = await prisma.online2024_articles.findUnique({
     where: {
@@ -851,6 +1001,22 @@ export const getOneArticle = async ({ articleId }) => {
   };
 };
 
+/**
+ * Searches articles across all of user's assigned agencies
+ * Supports single date or date range filtering
+ * Searches in title, slug, and full_text fields
+ * @param {Object} data - Search parameters
+ * @param {number} data.userId - User ID
+ * @param {string} data.searchText - Search query (can be empty string)
+ * @param {number} data.pageSize - Results per page (default: 20)
+ * @param {number} data.page - Page number (default: 1)
+ * @param {string} data.date - Single date filter (ISO format)
+ * @param {string} data.date_start - Range start date (ISO format)
+ * @param {string} data.date_finish - Range end date (ISO format)
+ * @param {Object} data.order - Sort order (default: {created_date: 'desc'})
+ * @returns {Promise<Object>} Matching articles from all agencies and total count
+ * @throws {ErrorHandler} 400 - Invalid date range or missing date parameters
+ */
 export const searchArticlesGlobale = async (data) => {
   const {
     userId,

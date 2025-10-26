@@ -1,3 +1,9 @@
+/**
+ * @fileoverview Error Handling Middleware
+ * Centralized error handling with custom error class and logging.
+ * @module middlewares/errorMiddleware
+ */
+
 import {
   PrismaClientKnownRequestError,
   PrismaClientUnknownRequestError,
@@ -9,8 +15,20 @@ import {
   userErrorLogger,
 } from "../utils/logger.js";
 
-// Custom error class to handle errors with status code and message
+/**
+ * Custom error class for application errors
+ * @class ErrorHandler
+ * @extends Error
+ */
 export class ErrorHandler extends Error {
+  /**
+   * Creates an ErrorHandler instance
+   * @param {number} statusCode - HTTP status code
+   * @param {string} message - Error message
+   * @param {boolean} [hasSession] - Whether user has an active session
+   * @param {boolean} [logout] - Whether to logout the user
+   * @param {string} [inputError] - Input validation error details
+   */
   constructor(statusCode, message, hasSession, logout, inputError) {
     super();
     this.status = "error";
@@ -21,7 +39,19 @@ export class ErrorHandler extends Error {
     this.inputError = inputError;
   }
 }
-// Middleware function to handle errors and send appropriate response
+/**
+ * Global error handling middleware
+ * Handles different error types:
+ * - Custom ErrorHandler errors
+ * - Prisma database errors
+ * - Generic server errors
+ * Logs errors appropriately and sends formatted responses
+ * @param {Error} err - Error object
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object} JSON error response
+ */
 export const handleError = (err, req, res, next) => {
   const { statusCode, message } = err;
 
@@ -66,6 +96,13 @@ export const handleError = (err, req, res, next) => {
   });
 };
 
+/**
+ * Creates a detailed log object for errors
+ * @param {Object} req - Express request object
+ * @param {Error} err - Error object
+ * @returns {Object} Formatted log object with request metadata
+ * @private
+ */
 const customLog = (req, err) => {
   return {
     statusCode: err.statusCode,

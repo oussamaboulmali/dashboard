@@ -1,3 +1,15 @@
+/**
+ * @fileoverview Main Application Entry Point
+ * Sets up Express server with middleware, routes, and security configurations.
+ * Features:
+ * - Session management with Redis
+ * - Dynamic session configuration for FortiGate proxy support
+ * - Security middleware (Helmet, CORS, rate limiting)
+ * - API key validation
+ * - Comprehensive error handling
+ * @module index
+ */
+
 import express from "express";
 import session from "express-session";
 import cors from "cors";
@@ -21,6 +33,11 @@ app.use(compression());
 
 app.set("trust proxy", 1);
 
+/**
+ * Checks if request is coming through FortiGate proxy
+ * @param {Object} req - Express request object
+ * @returns {boolean} True if request is proxied through FortiGate
+ */
 const isFortiGateProxy = (req) => {
   const forwardedHost = req.get("X-Forwarded-Host");
   const originalUrl = req.originalUrl || req.url;
@@ -28,7 +45,12 @@ const isFortiGateProxy = (req) => {
   return forwardedHost && originalUrl.includes("/proxy/");
 };
 
-// Dynamic session configuration based on environment
+/**
+ * Generates session configuration dynamically based on proxy detection
+ * FortiGate proxy requires different cookie settings (sameSite: 'none')
+ * @param {Object} req - Express request object
+ * @returns {Object} Session configuration object
+ */
 const getSessionConfig = (req) => {
   const baseConfig = {
     secret: process.env.SESSION_SECRET,

@@ -1,6 +1,23 @@
+/**
+ * @fileoverview Authentication Middleware
+ * Provides authentication and authorization middleware for protected routes.
+ * @module middlewares/authMiddleware
+ */
+
 import prisma from "../configs/database.js";
 import { ErrorHandler } from "./errorMiddleware.js";
-// Middleware function to authenticate user session and if he has an active session
+/**
+ * Authenticates user session and verifies it's active
+ * Checks:
+ * - Session exists in req.session
+ * - Session is active in database
+ * - User account is active (state = 1)
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {void}
+ * @throws {ErrorHandler} 403 - Session expired or invalid
+ */
 export const authenticate = async (req, res, next) => {
   try {
     // Check if session exists
@@ -43,6 +60,19 @@ export const authenticate = async (req, res, next) => {
   next();
 };
 
+/**
+ * Role-based access control middleware factory
+ * Restricts route access based on user's role menu permissions
+ * Menu IDs:
+ * - 2: Articles access
+ * - 3: Agency management
+ * - 4: Logs access
+ * - 5: User management
+ * @param {number} menuId - Menu ID required to access the route
+ * @returns {Function} Express middleware function
+ * @throws {ErrorHandler} 401 - User not authenticated
+ * @throws {ErrorHandler} 403 - User doesn't have required permission
+ */
 export const restrict = (menuId) => async (req, res, next) => {
   try {
     const userId = req.session.userId;
@@ -76,6 +106,15 @@ export const restrict = (menuId) => async (req, res, next) => {
   }
 };
 
+/**
+ * Validates API key in request headers
+ * Checks for x-api-key header and compares with environment variable
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {void}
+ * @throws {ErrorHandler} 401 - API key missing or invalid
+ */
 export const validateClient = async (req, res, next) => {
   try {
     const validApiKey = process.env.API_KEY;

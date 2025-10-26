@@ -1,8 +1,20 @@
+/**
+ * @fileoverview Log Service
+ * Manages system logs, session logs, and log file retrieval.
+ * @module services/logService
+ */
+
 import path from "path";
 import prisma from "../configs/database.js";
 import fs from "fs";
 import { ErrorHandler } from "../middlewares/errorMiddleware.js";
 
+/**
+ * Retrieves all user sessions for a specific date
+ * @param {Object} params - Parameters object
+ * @param {string} params.date - Date to query (ISO format)
+ * @returns {Promise<Array>} Array of sessions with user information
+ */
 export const getAllSessionsLogs = async ({ date }) => {
   const dateToget = new Date(date);
   // Set time to beginning of the day
@@ -41,6 +53,13 @@ export const getAllSessionsLogs = async ({ date }) => {
   return sessionsFormatted;
 };
 
+/**
+ * @deprecated Not currently used
+ * Retrieves only active sessions for a specific date
+ * @param {Object} params - Parameters object
+ * @param {string} params.date - Date to query (ISO format)
+ * @returns {Promise<Array>} Array of active sessions
+ */
 export const getActiveSessionsLogs = async ({ date }) => {
   const dateToget = new Date(date);
   // Set time to beginning of the day
@@ -80,6 +99,13 @@ export const getActiveSessionsLogs = async ({ date }) => {
   return sessionsFormatted;
 };
 
+/**
+ * Forcefully clears/terminates a user session (admin function)
+ * @param {Object} data - Session data
+ * @param {number} data.sessionId - Session ID to clear
+ * @returns {Promise<string>} Username of the cleared session
+ * @throws {ErrorHandler} 401 - Session not found
+ */
 export const clearSession = async (data) => {
   const { sessionId } = data;
 
@@ -115,6 +141,12 @@ export const clearSession = async (data) => {
   return session.online2024_users.username;
 };
 
+/**
+ * Parses newline-delimited JSON log file into array of log objects
+ * @param {string} data - Raw log file content
+ * @returns {Array} Array of parsed log objects
+ * @private
+ */
 const parseJsonLogs = (data) => {
   // Split the data by newline characters to get individual JSON strings
   const jsonStrings = data.split("\n");
@@ -135,6 +167,13 @@ const parseJsonLogs = (data) => {
   return parsedLogs.filter((log) => log !== null);
 };
 
+/**
+ * Reads and parses a specific log file
+ * @param {Object} params - Parameters object
+ * @param {string} params.filename - Log filename to read
+ * @returns {Promise<Array>} Array of parsed log entries
+ * @throws {ErrorHandler} 401 - Error reading log file
+ */
 export const getOneLog = async ({ filename }) => {
   const logFilePath = path.join(process.env.LOG_PATH, "logs_info", filename);
   try {
@@ -152,6 +191,12 @@ export const getOneLog = async ({ filename }) => {
   }
 };
 
+/**
+ * Retrieves all available log files organized by folder/category
+ * Scans the logs_info directory and returns folder structure
+ * @returns {Promise<Object>} Object with folders as keys and file arrays as values
+ * @throws {ErrorHandler} 401 - Error reading logs directory
+ */
 export const getLogsFileName = async () => {
   const logsPath = path.join(process.env.LOG_PATH, "logs_info");
   try {
